@@ -1,0 +1,226 @@
+---
+#################################  Watchlog  ##########################################
+- hosts: all # part running on all hosts
+  become: true
+  tasks:
+  - name: Install epel-release
+    yum:
+      name: epel-release
+      state: present
+    tags:
+      - watchlog   
+  
+  - name: install packages 
+    yum:
+      name: "{{ packages }}"
+      state: present
+    vars:
+      packages:
+      - spawn-fcgi
+      - php
+      - php-cli
+      - mod_fcgid
+      - httpd
+    tags:
+      - watchlog
+
+  - name: copy watchlog
+    copy:
+      src: files/watchlog
+      dest: /etc/sysconfig/watchlog
+      owner: root
+      group: root
+      mode: 0644
+    tags:
+      - watchlog
+
+  - name: copy watchlog.log
+    copy:
+      src: files/watchlog.log
+      dest: /var/log/watchlog.log
+      owner: root
+      group: root
+      mode: 0644
+    tags:
+      - watchlog
+
+  - name: copy watchlog.sh
+    copy:
+      src: files/watchlog.sh
+      dest: /opt/watchlog.sh
+      owner: root
+      group: root
+      mode: 0755
+    tags:
+      - watchlog
+
+  - name: copy watchlog.service
+    copy:
+      src: files/watchlog.service
+      dest: /etc/systemd/system/watchlog.service
+      owner: root
+      group: root
+      mode: 0644
+    tags:
+      - watchlog
+
+  - name: copy watchlog.timer
+    copy:
+      src: files/watchlog.timer
+      dest: /etc/systemd/system/watchlog.timer
+      owner: root
+      group: root
+      mode: 0644
+    tags:
+      - watchlog
+
+  - name: start watchlog.timer
+    ansible.builtin.service:
+      name: watchlog.timer
+      state: started
+    tags:
+      - watchlog
+
+  - name: Display messages contents
+    command: grep 'I found word,master!' /var/log/messages
+    register: command_output
+    tags:
+      - watchlog
+
+  - name: Print to console - watchlog
+    debug: msg="{{command_output.stdout}}"
+    tags:
+      - watchlog
+
+#################################  spawn-fcgi  ##########################################      
+  - name: copy spawn-fcgi
+    copy:
+      src: files/spawn-fcgi
+      dest: /etc/sysconfig/spawn-fcgi
+      owner: root
+      group: root
+      mode: 0600
+    tags:
+      - spawn-fcgi
+
+  - name: copy spawn-fcgi.service
+    copy:
+      src: files/spawn-fcgi.service
+      dest: /etc/systemd/system/spawn-fcgi.service
+      owner: root
+      group: root
+      mode: 0644
+    tags:
+      - spawn-fcgi
+
+  - name: start spawn-fcgi.service
+    ansible.builtin.service:
+      name: spawn-fcgi.service
+      state: started
+    tags:
+      - spawn-fcgi
+
+  - name: Display status spawn-fcgi.service
+    shell: 'systemctl status spawn-fcgi.service'
+    register: command_output
+    tags:
+      - spawn-fcgi
+ 
+  - name: Print to console - status spawn-fcgi.service
+    debug: msg="{{command_output.stdout}}"
+    tags:
+      - spawn-fcgi  
+
+#################################  unot apache httpd  ##########################################  
+
+  - name: copy httpd@.service
+    copy:
+      src: files/httpd@.service
+      dest: /usr/lib/systemd/system/httpd@.service
+      owner: root
+      group: root
+      mode: 0644
+    tags:
+      - httpd
+
+  - name: copy httpd-first
+    copy:
+      src: files/httpd-first
+      dest: /etc/sysconfig/httpd-first
+      owner: root
+      group: root
+      mode: 0644
+    tags:
+      - httpd      
+
+  - name: copy httpd-second
+    copy:
+      src: files/httpd-second
+      dest: /etc/sysconfig/httpd-second
+      owner: root
+      group: root
+      mode: 0644
+    tags:
+      - httpd          
+
+  - name: copy first.conf
+    copy:
+      src: files/first.conf
+      dest: /etc/httpd/conf/first.conf
+      owner: root
+      group: root
+      mode: 0644
+    tags:
+      - httpd          
+
+  - name: copy second.conf
+    copy:
+      src: files/second.conf
+      dest: /etc/httpd/conf/second.conf
+      owner: root
+      group: root
+      mode: 0644
+    tags:
+      - httpd          
+
+  - name: start httpd@first
+    ansible.builtin.service:
+      name: httpd@first
+      state: started
+    tags:
+      - httpd
+
+  - name: start httpd@second
+    ansible.builtin.service:
+      name: httpd@second
+      state: started
+    tags:
+      - httpd
+
+  - name: get service facts
+    service_facts:
+    tags:
+      - httpd
+
+  - name: Print to console - status httpd@first
+    debug:
+      var: ansible_facts.services["httpd@first.service"]
+    tags:
+      - httpd
+
+  - name: Print to console - status httpd@second
+    debug:
+      var: ansible_facts.services["httpd@second.service"]
+    tags:
+      - httpd
+
+  - name: Display ss -tnulp
+    shell: 'ss -tnulp | grep httpd'
+    register: command_output
+    tags:
+      - httpd
+ 
+  - name: Print to console - ss -tnulp
+    debug: msg="{{command_output.stdout}}"
+    tags:
+      - httpd

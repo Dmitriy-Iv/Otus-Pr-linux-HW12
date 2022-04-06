@@ -1,0 +1,57 @@
+A unit configuration file whose name ends in ".mount" encodes information about a file system mount point controlled and supervised by systemd.
+
+This man page lists the configuration options specific to this unit type. See systemd.unit(5) for the common options of all unit configuration files. The common configuration items are configured in the generic [Unit] and [Install] sections. The mount specific configuration options are configured in the [Mount] section.
+
+Additional options are listed in systemd.exec(5), which define the execution environment the mount(8) program is executed in, and in systemd.kill(5), which define the way the processes are terminated, and in systemd.resource-control(5), which configure resource control settings for the processes of the service.
+
+Note that the options User= and Group= are not useful for mount units. systemd passes two parameters to mount(8); the values of What= and Where=. When invoked in this way, mount(8) does not read any options from /etc/fstab, and must be run as UID 0.
+
+Mount units must be named after the mount point directories they control. Example: the mount point /home/lennart must be configured in a unit file home-lennart.mount. For details about the escaping logic used to convert a file system path to a unit name, see systemd.unit(5). Note that mount units cannot be templated, nor is possible to add multiple names to a mount unit by creating additional symlinks to it.
+
+Optionally, a mount unit may be accompanied by an automount unit, to allow on-demand or parallelized mounting. See systemd.automount(5).
+
+Mount points created at runtime (independently of unit files or /etc/fstab) will be monitored by systemd and appear like any other mount unit in systemd. See /proc/self/mountinfo description in proc(5).
+
+Some file systems have special semantics as API file systems for kernel-to-userspace and userspace-to-userspace interfaces. Some of them may not be changed via mount units, and cannot be disabled. For a longer discussion see API File Systems.
+
+The systemd-mount(1) command allows creating .mount and .automount units dynamically and transiently from the command line.
+
+Automatic Dependencies
+Implicit Dependencies
+The following dependencies are implicitly added:
+
+If a mount unit is beneath another mount unit in the file system hierarchy, both a requirement dependency and an ordering dependency between both units are created automatically.
+
+Block device backed file systems automatically gain BindsTo= and After= type dependencies on the device unit encapsulating the block device (see below).
+
+If traditional file system quota is enabled for a mount unit, automatic Wants= and Before= dependencies on systemd-quotacheck.service and quotaon.service are added.
+
+Additional implicit dependencies may be added as result of execution and resource control parameters as documented in systemd.exec(5) and systemd.resource-control(5).
+
+Default Dependencies
+The following dependencies are added unless DefaultDependencies=no is set:
+
+All mount units acquire automatic Before= and Conflicts= on umount.target in order to be stopped during shutdown.
+ALERT
+Mount units referring to local file systems automatically gain an After= dependency on local-fs-pre.target, and a Before= dependency on local-fs.target unless nofail mount option is set.
+
+Network mount units automatically acquire After= dependencies on remote-fs-pre.target, network.target and network-online.target, and gain a Before= dependency on remote-fs.target unless nofail mount option is set. Towards the latter a Wants= unit is added as well.
+
+Mount units referring to local and network file systems are distinguished by their file system type specification. In some cases this is not sufficient (for example network block device based mounts, such as iSCSI), in which case _netdev may be added to the mount option string of the unit, which forces systemd to consider the mount unit a network mount.
+
+fstab
+Mount units may either be configured via unit files, or via /etc/fstab (see fstab(5) for details). Mounts listed in /etc/fstab will be converted into native units dynamically at boot and when the configuration of the system manager is reloaded. In general, configuring mount points through /etc/fstab is the preferred approach. See systemd-fstab-generator(8) for details about the conversion.
+
+The NFS mount option bg for NFS background mounts as documented in nfs(5) is detected by systemd-fstab-generator and the options are transformed so that systemd fulfills the job-control implications of that option. Specifically systemd-fstab-generator acts as though "x-systemd.mount-timeout=infinity,retry=10000" was prepended to the option list, and "fg,nofail" was appended. Depending on specific requirements, it may be appropriate to provide some of these options explicitly, or to make use of the "x-systemd.automount" option described below instead of using "bg".
+
+When reading /etc/fstab a few special mount options are understood by systemd which influence how dependencies are created for mount points. systemd will create a dependency of type Wants= or Requires= (see option nofail below), from either local-fs.target or remote-fs.target, depending whether the file system is local or remote.
+
+x-systemd.requires=
+Configures a Requires= and an After= dependency between the created mount unit and another systemd unit, such as a device or mount unit. The argument should be a unit name, or an absolute path to a device node or mount point. This option may be specified more than once. This option is particularly useful for mount point declarations that need an additional device to be around (such as an external journal device for journal file systems) or an additional mount to be in place (such as an overlay file system that merges multiple mount points). See After= and Requires= in systemd.unit(5) for details.
+
+Note that this option always applies to the created mount unit only regardless whether x-systemd.automount has been specified.
+
+x-systemd.before=, x-systemd.after=
+In the created mount unit, configures a Before= or After= dependency on another systemd unit, such as a mount unit. The argument should be a unit name or an absolute path to a mount point. This option may be specified more than once. This option is particularly useful for mount point declarations with nofail option that are mounted asynchronously but need to be mounted before or after some unit start, for example, before local-fs.target unit. See Before= and After= in systemd.unit(5) for details.
+
+Note that these options always apply to the created mount unit only regardless whether x-systemd.automount has been specified.
