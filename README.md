@@ -11,13 +11,13 @@
 dima@Test-Ubuntu-1:~/otus$ git clone https://github.com/Dmitriy-Iv/Otus-Pr-linux-HW12.git
 ```
 
-2. Переходим в склонированный репозиторий и запускаем Vagrantfile.
+2. Переходим в клонированный репозиторий и запускаем Vagrantfile.
 ```
 dima@Test-Ubuntu-1:~/otus$ cd Otus-Pr-linux-HW12/
 dima@Test-Ubuntu-1:~/otus/Otus-Pr-linux-HW12$ vagrant up
 ```
 
-### **Комментарии к домашнему заданию по Systemd**
+# **Комментарии к домашнему заданию по Systemd**
 
 Для выполнения данного задания был создан Vagrantfile, в нём же прописан запуск playbook. 
 В playbook каждое задание - это копирование подготовленных файлов конфигов в нужные директории и страрт нужных сервисов (демонов).
